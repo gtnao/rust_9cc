@@ -9,6 +9,12 @@ pub enum Token {
     Slash,
     LParen,
     RParen,
+    Equal,
+    NotEqual,
+    GreaterThan,
+    GreaterThanOrEqual,
+    LessThan,
+    LessThanOrEqual,
     EOF,
 }
 
@@ -63,6 +69,60 @@ pub fn tokenize(s: &str) -> Vec<Token> {
                 tokens.push(Token::RParen);
                 iter.next();
             }
+            Some(&'=') => {
+                iter.next();
+                match iter.peek() {
+                    Some(&'=') => {
+                        tokens.push(Token::Equal);
+                        iter.next();
+                    }
+                    Some(&cc) => {
+                        panic!("unexpected character: {}", cc);
+                    }
+                    None => {
+                        panic!("unexpected EOF");
+                    }
+                }
+            }
+            Some(&'!') => {
+                iter.next();
+                match iter.peek() {
+                    Some(&'=') => {
+                        tokens.push(Token::NotEqual);
+                        iter.next();
+                    }
+                    Some(&cc) => {
+                        panic!("unexpected character: {}", cc);
+                    }
+                    None => {
+                        panic!("unexpected EOF");
+                    }
+                }
+            }
+            Some(&'>') => {
+                iter.next();
+                match iter.peek() {
+                    Some(&'=') => {
+                        tokens.push(Token::GreaterThanOrEqual);
+                        iter.next();
+                    }
+                    _ => {
+                        tokens.push(Token::GreaterThan);
+                    }
+                }
+            }
+            Some(&'<') => {
+                iter.next();
+                match iter.peek() {
+                    Some(&'=') => {
+                        tokens.push(Token::LessThanOrEqual);
+                        iter.next();
+                    }
+                    _ => {
+                        tokens.push(Token::LessThan);
+                    }
+                }
+            }
             Some(&c) => {
                 panic!("unexpected character: {}", c);
             }
@@ -81,6 +141,10 @@ pub enum NodeKind {
     Sub,
     Mul,
     Div,
+    Equal,
+    NotEqual,
+    LessThan,
+    LessThanOrEqual,
     Num(i64),
 }
 
@@ -103,7 +167,70 @@ impl Parser {
     pub fn program(&mut self) -> Node {
         self.expr()
     }
-    fn expr(&mut self) -> Node {
+    pub fn expr(&mut self) -> Node {
+        self.equality()
+    }
+    fn equality(&mut self) -> Node {
+        let mut node = self.relational();
+        loop {
+            if self.consume(Token::Equal) {
+                let rhs = self.relational();
+                node = Node {
+                    kind: NodeKind::Equal,
+                    lhs: Some(Box::new(node)),
+                    rhs: Some(Box::new(rhs)),
+                };
+            } else if self.consume(Token::NotEqual) {
+                let rhs = self.relational();
+                node = Node {
+                    kind: NodeKind::NotEqual,
+                    lhs: Some(Box::new(node)),
+                    rhs: Some(Box::new(rhs)),
+                };
+            } else {
+                break;
+            }
+        }
+        node
+    }
+    fn relational(&mut self) -> Node {
+        let mut node = self.add();
+        loop {
+            if self.consume(Token::GreaterThan) {
+                let rhs = self.add();
+                node = Node {
+                    kind: NodeKind::LessThan,
+                    rhs: Some(Box::new(rhs)),
+                    lhs: Some(Box::new(node)),
+                };
+            } else if self.consume(Token::GreaterThanOrEqual) {
+                let rhs = self.add();
+                node = Node {
+                    kind: NodeKind::LessThanOrEqual,
+                    rhs: Some(Box::new(rhs)),
+                    lhs: Some(Box::new(node)),
+                };
+            } else if self.consume(Token::LessThan) {
+                let rhs = self.add();
+                node = Node {
+                    kind: NodeKind::LessThan,
+                    lhs: Some(Box::new(node)),
+                    rhs: Some(Box::new(rhs)),
+                };
+            } else if self.consume(Token::LessThanOrEqual) {
+                let rhs = self.add();
+                node = Node {
+                    kind: NodeKind::LessThanOrEqual,
+                    lhs: Some(Box::new(node)),
+                    rhs: Some(Box::new(rhs)),
+                };
+            } else {
+                break;
+            }
+        }
+        node
+    }
+    fn add(&mut self) -> Node {
         let mut node = self.mul();
         loop {
             if self.consume(Token::Plus) {
@@ -232,6 +359,26 @@ fn gen(node: Node) {
         NodeKind::Div => {
             println!("  cqo");
             println!("  idiv rdi");
+        }
+        NodeKind::Equal => {
+            println!("  cmp rax, rdi");
+            println!("  sete al");
+            println!("  movzb rax, al");
+        }
+        NodeKind::NotEqual => {
+            println!("  cmp rax, rdi");
+            println!("  setne al");
+            println!("  movzb rax, al");
+        }
+        NodeKind::LessThan => {
+            println!("  cmp rax, rdi");
+            println!("  setl al");
+            println!("  movzb rax, al");
+        }
+        NodeKind::LessThanOrEqual => {
+            println!("  cmp rax, rdi");
+            println!("  setle al");
+            println!("  movzb rax, al");
         }
         _ => {}
     }

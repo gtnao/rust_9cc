@@ -127,17 +127,17 @@ impl Parser {
         node
     }
     fn mul(&mut self) -> Node {
-        let mut node = self.primary();
+        let mut node = self.unary();
         loop {
             if self.consume(Token::Asterisk) {
-                let rhs = self.primary();
+                let rhs = self.unary();
                 node = Node {
                     kind: NodeKind::Mul,
                     lhs: Some(Box::new(node)),
                     rhs: Some(Box::new(rhs)),
                 };
             } else if self.consume(Token::Slash) {
-                let rhs = self.primary();
+                let rhs = self.unary();
                 node = Node {
                     kind: NodeKind::Div,
                     lhs: Some(Box::new(node)),
@@ -148,6 +148,24 @@ impl Parser {
             }
         }
         node
+    }
+    fn unary(&mut self) -> Node {
+        if self.consume(Token::Plus) {
+            return self.primary();
+        }
+        if self.consume(Token::Minus) {
+            let v = self.primary();
+            return Node {
+                kind: NodeKind::Sub,
+                lhs: Some(Box::new(Node {
+                    kind: NodeKind::Num(0),
+                    lhs: None,
+                    rhs: None,
+                })),
+                rhs: Some(Box::new(v)),
+            };
+        }
+        self.primary()
     }
     fn primary(&mut self) -> Node {
         if self.consume(Token::LParen) {

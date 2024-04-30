@@ -7,8 +7,26 @@ pub fn prologue() {
 }
 
 pub fn epilogue() {
-    println!("  pop rax");
+    println!("  mov rsp, rbp");
+    println!("  pop rbp");
     println!("  ret");
+}
+
+pub fn allocate_local_variables() {
+    println!("  push rbp");
+    println!("  mov rbp, rsp");
+    println!("  sub rsp, {}", 8 * 26);
+}
+
+fn gen_lval(ast: AST) {
+    if let AST::Identifier(v) = ast {
+        println!("  mov rax, rbp");
+        let offset = (v.chars().next().unwrap() as i64 - 'a' as i64 + 1) * 8;
+        println!("  sub rax, {}", offset);
+        println!("  push rax");
+        return;
+    }
+    panic!("invalid lval");
 }
 
 pub fn gen(ast: AST) {
@@ -16,8 +34,26 @@ pub fn gen(ast: AST) {
         println!("  push {}", v);
         return;
     }
+    if let AST::Identifier(_) = ast {
+        gen_lval(ast);
+        println!("  pop rax");
+        println!("  mov rax, [rax]");
+        println!("  push rax");
+        return;
+    }
 
     if let AST::BinaryOperation(node) = ast {
+        if BinaryOperator::Assign == node.op {
+            gen_lval(*node.lhs);
+            gen(*node.rhs);
+
+            println!("  pop rdi");
+            println!("  pop rax");
+            println!("  mov [rax], rdi");
+            println!("  push rdi");
+            return;
+        }
+
         gen(*node.lhs);
         gen(*node.rhs);
 
@@ -58,6 +94,7 @@ pub fn gen(ast: AST) {
                 println!("  setle al");
                 println!("  movzb rax, al");
             }
+            _ => unreachable!(),
         }
         println!("  push rax");
     }

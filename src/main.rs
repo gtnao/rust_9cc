@@ -1,7 +1,7 @@
 use std::{env, process};
 
 use rust_9cc::{
-    generator::{epilogue, gen, prologue},
+    generator::{allocate_local_variables, epilogue, gen, prologue},
     lexer::tokenize,
     parser::Parser,
 };
@@ -14,8 +14,12 @@ fn main() {
     }
     let tokens = tokenize(&args[1]);
     let mut parser = Parser::new(tokens);
-    let ast = parser.program();
+    let asts = parser.program();
     prologue();
-    gen(ast);
+    allocate_local_variables();
+    for ast in asts {
+        gen(ast);
+        println!("  pop rax");
+    }
     epilogue();
 }

@@ -4,6 +4,7 @@ use crate::lexer::Token;
 pub enum AST {
     BinaryOperation(BinaryOperationAST),
     NumberLiteral(i64),
+    Identifier(String),
 }
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct BinaryOperationAST {
@@ -21,6 +22,7 @@ pub enum BinaryOperator {
     NotEqual,
     LessThan,
     LessThanOrEqual,
+    Assign,
 }
 
 pub struct Parser {
@@ -32,11 +34,32 @@ impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, cursor: 0 }
     }
-    pub fn program(&mut self) -> AST {
-        self.expr()
+    pub fn program(&mut self) -> Vec<AST> {
+        let mut nodes = Vec::new();
+        while self.tokens[self.cursor] != Token::EOF {
+            nodes.push(self.stmt());
+        }
+        nodes
+    }
+    fn stmt(&mut self) -> AST {
+        let node = self.expr();
+        self.expect(Token::SemiColon);
+        node
     }
     fn expr(&mut self) -> AST {
-        self.equality()
+        self.assign()
+    }
+    fn assign(&mut self) -> AST {
+        let mut node = self.equality();
+        if self.consume(Token::Assign) {
+            let rhs = self.assign();
+            node = AST::BinaryOperation(BinaryOperationAST {
+                op: BinaryOperator::Assign,
+                lhs: Box::new(node),
+                rhs: Box::new(rhs),
+            });
+        }
+        node
     }
     fn equality(&mut self) -> AST {
         let mut node = self.relational();
@@ -164,7 +187,10 @@ impl Parser {
             self.expect(Token::RightParen);
             return v;
         }
-        AST::NumberLiteral(self.expect_number())
+        if let Token::Number(_) = self.tokens[self.cursor] {
+            return self.expect_number();
+        }
+        self.expect_identifier()
     }
 
     fn consume(&mut self, expected: Token) -> bool {
@@ -180,10 +206,22 @@ impl Parser {
         }
         self.cursor += 1;
     }
-    fn expect_number(&mut self) -> i64 {
+    fn expect_number(&mut self) -> AST {
         if let Token::Number(v) = self.tokens[self.cursor] {
             self.cursor += 1;
-            v
+            AST::NumberLiteral(v)
+        } else {
+            panic!("unexpected token: {:?}", self.tokens[self.cursor]);
+        }
+    }
+    fn expect_identifier(&mut self) -> AST {
+        if let Token::Identifier(v) = &self.tokens[self.cursor] {
+            self.cursor += 1;
+            // only support lower a to z
+            if v.len() != 1 || !v.chars().next().unwrap().is_ascii_lowercase() {
+                panic!("unexpected identifier: {:?}", v);
+            }
+            AST::Identifier(v.clone())
         } else {
             panic!("unexpected token: {:?}", self.tokens[self.cursor]);
         }

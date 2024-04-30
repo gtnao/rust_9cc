@@ -1,5 +1,6 @@
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Token {
+    Identifier(String),
     Number(i64),
     Plus,
     Minus,
@@ -7,12 +8,14 @@ pub enum Token {
     Slash,
     LeftParen,
     RightParen,
+    Assign,
     Equal,
     NotEqual,
     GreaterThan,
     GreaterThanOrEqual,
     LessThan,
     LessThanOrEqual,
+    SemiColon,
     EOF,
 }
 
@@ -23,6 +26,21 @@ pub fn tokenize(s: &str) -> Vec<Token> {
         match iter.peek() {
             Some(&c) if c.is_whitespace() => {
                 iter.next();
+            }
+            Some(c) if c.is_alphabetic() => {
+                let mut ret = String::new();
+                loop {
+                    match iter.peek() {
+                        Some(cc) if cc.is_ascii_digit() || cc.is_alphabetic() => {
+                            ret.push(*cc);
+                            iter.next();
+                        }
+                        _ => {
+                            break;
+                        }
+                    }
+                }
+                tokens.push(Token::Identifier(ret));
             }
             Some(&c) if c.is_ascii_digit() => {
                 let mut ret = String::new();
@@ -74,11 +92,8 @@ pub fn tokenize(s: &str) -> Vec<Token> {
                         tokens.push(Token::Equal);
                         iter.next();
                     }
-                    Some(&cc) => {
-                        panic!("unexpected character: {}", cc);
-                    }
-                    None => {
-                        panic!("unexpected EOF");
+                    _ => {
+                        tokens.push(Token::Assign);
                     }
                 }
             }
@@ -120,6 +135,10 @@ pub fn tokenize(s: &str) -> Vec<Token> {
                         tokens.push(Token::LessThan);
                     }
                 }
+            }
+            Some(&';') => {
+                tokens.push(Token::SemiColon);
+                iter.next();
             }
             Some(&c) => {
                 panic!("unexpected character: {}", c);

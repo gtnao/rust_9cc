@@ -1,10 +1,6 @@
 use std::{env, process};
 
-use rust_9cc::{
-    generator::{allocate_local_variables, epilogue, gen, prologue},
-    lexer::tokenize,
-    parser::Parser,
-};
+use rust_9cc::{generator::Generator, lexer::tokenize, parser::Parser};
 
 fn main() {
     let args = env::args().collect::<Vec<String>>();
@@ -15,11 +11,11 @@ fn main() {
     let tokens = tokenize(&args[1]);
     let mut parser = Parser::new(tokens);
     let asts = parser.program();
-    prologue();
-    allocate_local_variables();
+    let mut generator = Generator::new();
+    generator.prologue();
+    generator.allocate_local_variables(parser.local_variable_count());
     for ast in asts {
-        gen(ast);
-        println!("  pop rax");
+        generator.gen(ast);
     }
-    epilogue();
+    generator.epilogue();
 }

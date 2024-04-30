@@ -27,8 +27,8 @@ function expect() {
 	fi
 }
 
-expect "0" "0;"
-expect "1" "1;"
+expect "0" "return 0;"
+expect "1" "return 1;"
 expect "2" "1+1;"
 expect "10" "2*3+4;"
 expect "26" "2*3+4*5;"
@@ -60,6 +60,14 @@ expect "1" "6 >= 5;"
 expect "2" "a=2; a;"
 expect "6" "foo=1; bar=2+3; foo+bar;"
 expect "14" "a=3; b=5*6-8; return a+b/2;"
+
+expect "2" "i=3; if (1) i=2; i;"
+expect "3" "i=3; if (0) i=2; i;"
+expect "2" "i=0; if (1) i=2; else i=3; i;"
+expect "3" "i=0; if (0) i=2; else i=3; i;"
+
+expect "10" "i=0; while (i<10) i=i+1; i;"
+expect "60" "sum=0; for (i=10; i<15; i=i+1) sum=sum+i; sum;"
 
 echo "OK!"
 

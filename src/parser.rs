@@ -6,6 +6,9 @@ use crate::lexer::{Keyword, Token};
 pub enum AST {
     BinaryOperation(BinaryOperationAST),
     Return(Box<AST>),
+    If(IfAST),
+    While(WhileAST),
+    For(ForAST),
     NumberLiteral(i64),
     LocalVariable(LocalVariableAST),
 }
@@ -32,6 +35,24 @@ pub struct LocalVariableAST {
     pub name: String,
     pub offset: i64,
 }
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct IfAST {
+    pub condition: Box<AST>,
+    pub then: Box<AST>,
+    pub else_: Option<Box<AST>>,
+}
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct WhileAST {
+    pub condition: Box<AST>,
+    pub body: Box<AST>,
+}
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct ForAST {
+    pub init: Option<Box<AST>>,
+    pub condition: Option<Box<AST>>,
+    pub update: Option<Box<AST>>,
+    pub body: Box<AST>,
+}
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -56,12 +77,70 @@ impl Parser {
         }
         nodes
     }
+    pub fn local_variable_count(&self) -> usize {
+        self.local_variable_map.len()
+    }
     fn stmt(&mut self) -> AST {
-        let node = if self.consume(Token::Keyword(Keyword::Return)) {
-            AST::Return(Box::new(self.expr()))
-        } else {
-            self.expr()
-        };
+        if self.consume(Token::Keyword(Keyword::Return)) {
+            let node = AST::Return(Box::new(self.expr()));
+            self.expect(Token::SemiColon);
+            return node;
+        }
+        if self.consume(Token::Keyword(Keyword::If)) {
+            self.expect(Token::LeftParen);
+            let condition = Box::new(self.expr());
+            self.expect(Token::RightParen);
+            let then = Box::new(self.stmt());
+            let else_ = if self.consume(Token::Keyword(Keyword::Else)) {
+                Some(Box::new(self.stmt()))
+            } else {
+                None
+            };
+            return AST::If(IfAST {
+                condition,
+                then,
+                else_,
+            });
+        }
+        if self.consume(Token::Keyword(Keyword::While)) {
+            self.expect(Token::LeftParen);
+            let condition = Box::new(self.expr());
+            self.expect(Token::RightParen);
+            let body = Box::new(self.stmt());
+            return AST::While(WhileAST { condition, body });
+        }
+        if self.consume(Token::Keyword(Keyword::For)) {
+            self.expect(Token::LeftParen);
+            let init = if self.consume(Token::SemiColon) {
+                None
+            } else {
+                let node = Some(Box::new(self.expr()));
+                self.expect(Token::SemiColon);
+                node
+            };
+            let condition = if self.consume(Token::SemiColon) {
+                None
+            } else {
+                let node = Some(Box::new(self.expr()));
+                self.expect(Token::SemiColon);
+                node
+            };
+            let update = if self.consume(Token::RightParen) {
+                None
+            } else {
+                let node = Some(Box::new(self.expr()));
+                self.expect(Token::RightParen);
+                node
+            };
+            let body = Box::new(self.stmt());
+            return AST::For(ForAST {
+                init,
+                condition,
+                update,
+                body,
+            });
+        }
+        let node = self.expr();
         self.expect(Token::SemiColon);
         node
     }

@@ -23,6 +23,10 @@ pub enum Token {
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum Keyword {
     Return,
+    If,
+    Else,
+    While,
+    For,
 }
 
 pub fn tokenize(s: &str) -> Vec<Token> {
@@ -49,6 +53,18 @@ pub fn tokenize(s: &str) -> Vec<Token> {
                 match ret.as_str() {
                     "return" => {
                         tokens.push(Token::Keyword(Keyword::Return));
+                    }
+                    "if" => {
+                        tokens.push(Token::Keyword(Keyword::If));
+                    }
+                    "else" => {
+                        tokens.push(Token::Keyword(Keyword::Else));
+                    }
+                    "while" => {
+                        tokens.push(Token::Keyword(Keyword::While));
+                    }
+                    "for" => {
+                        tokens.push(Token::Keyword(Keyword::For));
                     }
                     _ => {
                         tokens.push(Token::Identifier(ret));

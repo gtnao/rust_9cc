@@ -11,6 +11,7 @@ pub enum AST {
     For(ForAST),
     NumberLiteral(i64),
     LocalVariable(LocalVariableAST),
+    Block(Vec<AST>),
 }
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct BinaryOperationAST {
@@ -81,6 +82,13 @@ impl Parser {
         self.local_variable_map.len()
     }
     fn stmt(&mut self) -> AST {
+        if self.consume(Token::LeftBrace) {
+            let mut nodes = Vec::new();
+            while !self.consume(Token::RightBrace) {
+                nodes.push(self.stmt());
+            }
+            return AST::Block(nodes);
+        }
         if self.consume(Token::Keyword(Keyword::Return)) {
             let node = AST::Return(Box::new(self.expr()));
             self.expect(Token::SemiColon);

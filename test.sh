@@ -69,6 +69,8 @@ expect "3" "i=0; if (0) i=2; else i=3; i;"
 expect "10" "i=0; while (i<10) i=i+1; i;"
 expect "60" "sum=0; for (i=10; i<15; i=i+1) sum=sum+i; sum;"
 
+expect "89" "i=1; j=1; for (k=0; k<10; k=k+1) { m=i+j; i=j; j=m; } return i;"
+
 echo "OK!"
 
 cleanup

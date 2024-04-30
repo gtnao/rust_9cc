@@ -23,6 +23,13 @@ impl Generator {
         println!("  sub rsp, {}", 8 * local_variable_count);
     }
     pub fn gen(&mut self, ast: AST) {
+        if let AST::Block(nodes) = ast {
+            for node in nodes {
+                self.gen(node);
+                // println!("  pop rax");
+            }
+            return;
+        }
         if let AST::Return(node) = ast {
             self.gen(*node);
             println!("  pop rax");

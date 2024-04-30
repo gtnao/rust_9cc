@@ -17,6 +17,8 @@ pub enum Token {
     LessThan,
     LessThanOrEqual,
     SemiColon,
+    LeftBrace,
+    RightBrace,
     EOF,
 }
 
@@ -167,6 +169,14 @@ pub fn tokenize(s: &str) -> Vec<Token> {
             }
             Some(&';') => {
                 tokens.push(Token::SemiColon);
+                iter.next();
+            }
+            Some(&'{') => {
+                tokens.push(Token::LeftBrace);
+                iter.next();
+            }
+            Some(&'}') => {
+                tokens.push(Token::RightBrace);
                 iter.next();
             }
             Some(&c) => {

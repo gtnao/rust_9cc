@@ -29,6 +29,14 @@ fn gen_lval(ast: AST) {
 }
 
 pub fn gen(ast: AST) {
+    if let AST::Return(node) = ast {
+        gen(*node);
+        println!("  pop rax");
+        println!("  mov rsp, rbp");
+        println!("  pop rbp");
+        println!("  ret");
+        return;
+    }
     if let AST::NumberLiteral(v) = ast {
         println!("  push {}", v);
         return;

@@ -2,6 +2,7 @@
 pub enum Token {
     Identifier(String),
     Number(i64),
+    Keyword(Keyword),
     Plus,
     Minus,
     Asterisk,
@@ -19,6 +20,11 @@ pub enum Token {
     EOF,
 }
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub enum Keyword {
+    Return,
+}
+
 pub fn tokenize(s: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
     let mut iter = s.chars().peekable();
@@ -27,12 +33,12 @@ pub fn tokenize(s: &str) -> Vec<Token> {
             Some(&c) if c.is_whitespace() => {
                 iter.next();
             }
-            Some(c) if c.is_alphabetic() => {
+            Some(&c) if '_' == c || c.is_alphabetic() => {
                 let mut ret = String::new();
                 loop {
                     match iter.peek() {
-                        Some(cc) if cc.is_ascii_digit() || cc.is_alphabetic() => {
-                            ret.push(*cc);
+                        Some(&cc) if '_' == cc || cc.is_ascii_digit() || cc.is_alphabetic() => {
+                            ret.push(cc);
                             iter.next();
                         }
                         _ => {
@@ -40,7 +46,14 @@ pub fn tokenize(s: &str) -> Vec<Token> {
                         }
                     }
                 }
-                tokens.push(Token::Identifier(ret));
+                match ret.as_str() {
+                    "return" => {
+                        tokens.push(Token::Keyword(Keyword::Return));
+                    }
+                    _ => {
+                        tokens.push(Token::Identifier(ret));
+                    }
+                }
             }
             Some(&c) if c.is_ascii_digit() => {
                 let mut ret = String::new();

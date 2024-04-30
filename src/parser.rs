@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
-use crate::lexer::Token;
+use crate::lexer::{Keyword, Token};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum AST {
     BinaryOperation(BinaryOperationAST),
+    Return(Box<AST>),
     NumberLiteral(i64),
     LocalVariable(LocalVariableAST),
 }
@@ -56,7 +57,11 @@ impl Parser {
         nodes
     }
     fn stmt(&mut self) -> AST {
-        let node = self.expr();
+        let node = if self.consume(Token::Keyword(Keyword::Return)) {
+            AST::Return(Box::new(self.expr()))
+        } else {
+            self.expr()
+        };
         self.expect(Token::SemiColon);
         node
     }

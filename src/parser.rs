@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::lexer::Token;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -33,11 +35,18 @@ pub struct LocalVariableAST {
 pub struct Parser {
     tokens: Vec<Token>,
     cursor: usize,
+    local_variable_map: HashMap<String, i64>,
+    local_variable_current_offset: i64,
 }
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Parser { tokens, cursor: 0 }
+        Parser {
+            tokens,
+            cursor: 0,
+            local_variable_map: HashMap::new(),
+            local_variable_current_offset: 8,
+        }
     }
     pub fn program(&mut self) -> Vec<AST> {
         let mut nodes = Vec::new();
@@ -222,15 +231,20 @@ impl Parser {
     fn expect_local_variable(&mut self) -> AST {
         if let Token::Identifier(v) = &self.tokens[self.cursor] {
             self.cursor += 1;
-            // only support lower a to z
-            if v.len() != 1 || !v.chars().next().unwrap().is_ascii_lowercase() {
-                panic!("unexpected identifier: {:?}", v);
+            if let Some(offset) = self.local_variable_map.get(v) {
+                AST::LocalVariable(LocalVariableAST {
+                    name: v.clone(),
+                    offset: *offset,
+                })
+            } else {
+                let offset = self.local_variable_current_offset;
+                self.local_variable_map.insert(v.clone(), offset);
+                self.local_variable_current_offset += 8;
+                AST::LocalVariable(LocalVariableAST {
+                    name: v.clone(),
+                    offset,
+                })
             }
-            let offset = (v.chars().next().unwrap() as i64 - 'a' as i64 + 1) * 8;
-            AST::LocalVariable(LocalVariableAST {
-                name: v.clone(),
-                offset,
-            })
         } else {
             panic!("unexpected token: {:?}", self.tokens[self.cursor]);
         }

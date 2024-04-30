@@ -59,6 +59,7 @@ expect "1" "6 >= 5;"
 
 expect "2" "a=2; a;"
 expect "14" "a=3; b=5*6-8; a+b/2;"
+expect "6" "foo=1; bar=2+3; foo+bar;"
 
 echo "OK!"
 

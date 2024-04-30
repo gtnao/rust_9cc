@@ -19,10 +19,9 @@ pub fn allocate_local_variables() {
 }
 
 fn gen_lval(ast: AST) {
-    if let AST::Identifier(v) = ast {
+    if let AST::LocalVariable(v) = ast {
         println!("  mov rax, rbp");
-        let offset = (v.chars().next().unwrap() as i64 - 'a' as i64 + 1) * 8;
-        println!("  sub rax, {}", offset);
+        println!("  sub rax, {}", v.offset);
         println!("  push rax");
         return;
     }
@@ -34,7 +33,7 @@ pub fn gen(ast: AST) {
         println!("  push {}", v);
         return;
     }
-    if let AST::Identifier(_) = ast {
+    if let AST::LocalVariable(_) = ast {
         gen_lval(ast);
         println!("  pop rax");
         println!("  mov rax, [rax]");

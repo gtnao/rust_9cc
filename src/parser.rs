@@ -4,7 +4,7 @@ use crate::lexer::Token;
 pub enum AST {
     BinaryOperation(BinaryOperationAST),
     NumberLiteral(i64),
-    Identifier(String),
+    LocalVariable(LocalVariableAST),
 }
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct BinaryOperationAST {
@@ -23,6 +23,11 @@ pub enum BinaryOperator {
     LessThan,
     LessThanOrEqual,
     Assign,
+}
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub struct LocalVariableAST {
+    pub name: String,
+    pub offset: i64,
 }
 
 pub struct Parser {
@@ -190,7 +195,7 @@ impl Parser {
         if let Token::Number(_) = self.tokens[self.cursor] {
             return self.expect_number();
         }
-        self.expect_identifier()
+        self.expect_local_variable()
     }
 
     fn consume(&mut self, expected: Token) -> bool {
@@ -214,14 +219,18 @@ impl Parser {
             panic!("unexpected token: {:?}", self.tokens[self.cursor]);
         }
     }
-    fn expect_identifier(&mut self) -> AST {
+    fn expect_local_variable(&mut self) -> AST {
         if let Token::Identifier(v) = &self.tokens[self.cursor] {
             self.cursor += 1;
             // only support lower a to z
             if v.len() != 1 || !v.chars().next().unwrap().is_ascii_lowercase() {
                 panic!("unexpected identifier: {:?}", v);
             }
-            AST::Identifier(v.clone())
+            let offset = (v.chars().next().unwrap() as i64 - 'a' as i64 + 1) * 8;
+            AST::LocalVariable(LocalVariableAST {
+                name: v.clone(),
+                offset,
+            })
         } else {
             panic!("unexpected token: {:?}", self.tokens[self.cursor]);
         }
